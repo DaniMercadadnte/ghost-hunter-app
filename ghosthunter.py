@@ -69,21 +69,6 @@ class InstagramCloudManager:
             st.session_state.client = Client()
         self.client = st.session_state.client
 
-    def login(self, username, password, sessionid):
-        status = st.empty()
-        status.info("Connessione ai server Instagram...")
-        
-        success = False
-
-        if sessionid:
-            try:
-                self.client.login_by_sessionid(sessionid)
-                success = True
-                status.success("Login tramite SessionID riuscito!")
-            except Exception as e:
-    def get_session_file(self, username):
-        return os.path.join(self.sessions_dir, f"{username}_session.json")
-
     def login(self, username, sessionid):
         status = st.empty()
         status.info("Connessione ai server Instagram...")
