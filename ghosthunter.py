@@ -64,20 +64,15 @@ SITE_PASSWORD = "segreto_personale"
 
 class InstagramCloudManager:
     def __init__(self):
-        self.sessions_dir = "sessions"
-        Path(self.sessions_dir).mkdir(exist_ok=True)
+        # NESSUNA CARTELLA SESSIONS CREATA - Modalità Zero-Log per la privacy
         if 'client' not in st.session_state:
             st.session_state.client = Client()
         self.client = st.session_state.client
-
-    def get_session_file(self, username):
-        return os.path.join(self.sessions_dir, f"{username}_session.json")
 
     def login(self, username, password, sessionid):
         status = st.empty()
         status.info("Connessione ai server Instagram...")
         
-        session_file = self.get_session_file(username)
         success = False
 
         if sessionid:
@@ -86,29 +81,27 @@ class InstagramCloudManager:
                 success = True
                 status.success("Login tramite SessionID riuscito!")
             except Exception as e:
-                st.warning(f"SessionID non valido: {e}")
+    def get_session_file(self, username):
+        return os.path.join(self.sessions_dir, f"{username}_session.json")
 
-        if not success and password:
-            try:
-                self.client.set_device({"app_version": "269.0.0.18.75", "android_version": 26, "android_release": "8.0.0", "dpi": "480dpi", "resolution": "1080x1920", "manufacturer": "Samsung", "device": "SM-G960F", "model": "Galaxy S9", "cpu": "exynos9810", "version_code": "314665256"})
-                self.client.login(username, password)
-                success = True
-            except (TwoFactorRequired, ChallengeRequired):
-                st.error("❌ Instagram richiede una verifica (2FA o Challenge). Usa il metodo Session ID.")
-                return False
-            except Exception as e:
-                st.error(f"Errore Login: {e}")
-                return False
+    def login(self, username, sessionid):
+        status = st.empty()
+        status.info("Connessione ai server Instagram...")
+        
+        if not sessionid:
+            st.error("Inserisci il Session ID per continuare.")
+            return False
 
-        if success:
+        try:
+            self.client.login_by_sessionid(sessionid)
+            status.success("✅ Login tramite Session ID riuscito!")
             st.session_state.user_id = self.client.user_id
             st.session_state.logged_in = True
-            try:
-                self.client.dump_settings(session_file)
-            except: pass
+            # NESSUN SALVATAGGIO FILE: I dati esistono solo finché la pagina web è aperta
             return True
-        
-        return False
+        except Exception as e:
+            st.error(f"❌ Session ID non valido o scaduto: {e}")
+            return False
 
     def process_data(self, auto_unfollow, limit_vip, log_container):
         try:
@@ -199,9 +192,10 @@ def main():
 
     with st.sidebar:
         st.header("🔑 Login Instagram")
+        st.info("Abbiamo rimosso la password per proteggere il tuo account. Usa solo il Session ID.")
+        
         username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        sessionid = st.text_input("Session ID")
+        sessionid = st.text_input("Session ID", type="password")
 
         with st.expander("❓ Guida al Session ID"):
             st.markdown("""
@@ -214,7 +208,7 @@ def main():
         
         if st.button("Esegui Connessione"):
             if username:
-                if manager.login(username, password, sessionid):
+                if manager.login(username, sessionid):
                     st.success("Connesso!")
             else:
                 st.error("Username obbligatorio.")
@@ -224,9 +218,10 @@ def main():
         
         col1, col2 = st.columns(2)
         with col1:
+            st.markdown("<br>", unsafe_allow_html=True)
             auto_unfollow = st.checkbox("Abilita Unfollow Automatico", value=False)
         with col2:
-            limit_vip = st.number_input("Soglia VIP (Protezione)", value=5000)
+            limit_vip = st.slider("Filtra account VIP (> follower)", min_value=1000, max_value=50000, value=5000, step=1000)
             
         if st.button("🚀 AVVIA SCANSIONE"):
             log_box = st.empty()
