@@ -78,14 +78,36 @@ class InstagramCloudManager:
             return False
 
         try:
-            self.client.login_by_sessionid(sessionid)
+            # 1. Impostiamo il dispositivo PRIMA di mandare il sessionid (riduce i blocchi)
+            self.client.set_device({
+                "app_version": "269.0.0.18.75", 
+                "android_version": 26, 
+                "android_release": "8.0.0", 
+                "dpi": "480dpi", 
+                "resolution": "1080x1920", 
+                "manufacturer": "Samsung", 
+                "device": "SM-G960F", 
+                "model": "Galaxy S9", 
+                "cpu": "exynos9810", 
+                "version_code": "314665256"
+            })
+            
+            # 2. Puliamo il SessionID da eventuali spazi copiati per sbaglio
+            clean_sessionid = sessionid.strip()
+
+            self.client.login_by_sessionid(clean_sessionid)
             status.success("✅ Login tramite Session ID riuscito!")
             st.session_state.user_id = self.client.user_id
             st.session_state.logged_in = True
             # NESSUN SALVATAGGIO FILE: I dati esistono solo finché la pagina web è aperta
             return True
         except Exception as e:
-            st.error(f"❌ Session ID non valido o scaduto: {e}")
+            error_msg = str(e)
+            if "Expecting value" in error_msg:
+                st.error("❌ ERRORE: Instagram ha rifiutato la connessione o il formato del Session ID è errato.")
+                st.info("💡 SUGGERIMENTI:\n1. Ricopia il Session ID da una finestra 'In Incognito' del browser (spesso risolve il problema).\n2. Assicurati di non aver incollato per sbaglio parti del codice HTML.\n3. Attendi qualche minuto, Instagram potrebbe aver momentaneamente bloccato l'IP del server.")
+            else:
+                st.error(f"❌ Session ID non valido o scaduto: {error_msg}")
             return False
 
     def process_data(self, auto_unfollow, limit_vip, log_container):
