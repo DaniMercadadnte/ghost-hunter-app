@@ -235,8 +235,5 @@ def main():
         st.warning("Esegui il login dalla barra laterale.")
 
 if __name__ == "__main__":
-    is_streamlit_run = any("streamlit" in arg.lower() for arg in sys.argv)
-    if not is_streamlit_run:
-        print(f"\n👉  python -m streamlit run {os.path.basename(__file__)}\n")
-    else:
-        main()
+    # Avviamo direttamente il programma senza blocchi inutili
+    main()
